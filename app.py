@@ -41,7 +41,8 @@ knowledge_base_multi_level = {
 level_keywords = {"一般": "general", "専門": "expert", "小学生": "elementary"}
 translate_keywords = ["を翻訳して", "に訳して", "翻訳", "translate"]
 
-
+# --- 新しい機能のキーワード ---
+plan_keywords = ["勉強計画", "計画を立てて", "勉強法", "スケジュール"]
 def ultimate_chatbot(user_input, uploaded_file=None):
     """
     最終版：翻訳、画像認識、掘り下げ学習を含む全ての機能を統合したチャットボット（Streamlit対応）
@@ -82,7 +83,28 @@ def ultimate_chatbot(user_input, uploaded_file=None):
                 return f"💡 正しい答えは **'{correct}'** でした！"
             else:
                 return "🤔 残念、違います。もう一度考えてみましょう。または '答え' と入力すると教えますよ。"
+# --- 4. 勉強計画・勉強法立案ロジック（追加部分） ---
+    if any(k in user_input_lower for k in plan_keywords):
+        if client:
+            try:
+                # 計画立案に特化したプロンプトを設定
+                plan_system_instruction = (
+                    "あなたは学習コーチです。ユーザーの「勉強計画」や「勉強法」に関する質問に答えてください。"
+                    "まずは、達成したい目標、期間、現在の進捗（科目や苦手な点）を聞き出す質問をしてください。"
+                    "回答は親しみやすい言葉で、ユーザーのやる気を高めるようにしてください。"
+                    "最後に、ユーザーからの回答を待つことを明確に伝えてください。"
+                )
 
+                plan_response = client.models.generate_content(
+                    model=model,
+                    contents=[user_input],
+                    config=genai.types.GenerateContentConfig(
+                        system_instruction=plan_system_instruction
+                    )
+                )
+                return plan_response.text
+            except Exception:
+                pass # 失敗した場合は、通常のAI応答へフォールバック
     # --- 3. クイズ機能の起動ロジック ---
     if "クイズ" in user_input_lower:
         concepts = list(knowledge_base_multi_level.keys())
