@@ -17,13 +17,20 @@ except (AttributeError, KeyError):
 client = genai.Client(api_key=API_KEY)
 
 # 状態管理（セッションステート）の初期化
-# 🚨 ValidationError対策: 過去の不正なメッセージ履歴を強制的にリセットする 🚨
-if "messages" in st.session_state:
-    # 既存の不正なデータを del で完全に破棄
-    del st.session_state.messages 
-st.session_state.messages = []
+# 🚨 最終対策: すべてのキーを強制的にリセットする 🚨
+if "reset_flag" not in st.session_state:
+    st.session_state.reset_flag = True
 
+if st.session_state.reset_flag:
+    # 既存の不正なメッセージ履歴をクリア
+    st.session_state.messages = []
+    st.session_state.is_quizzing = False
+    st.session_state.current_answer = ""
+    st.session_state.quiz_concept = ""
+    st.session_state.user_level = "general" # 初期レベル
+    st.session_state.reset_flag = False # リセットは初回のみ実行
 
+# 残りのキーが設定されていない場合のみ初期化
 if "is_quizzing" not in st.session_state:
     st.session_state.is_quizzing = False
 if "current_answer" not in st.session_state:
@@ -31,7 +38,8 @@ if "current_answer" not in st.session_state:
 if "quiz_concept" not in st.session_state:
     st.session_state.quiz_concept = ""
 if "user_level" not in st.session_state:
-    st.session_state.user_level = "general" # 初期レベル
+    st.session_state.user_level = "general" 
+
 
 # --- 2. 各機能のキーワード定義 ---
 level_keywords = ["beginner", "intermediate", "expert", "general", "初心者", "中級", "上級", "一般"]
@@ -152,7 +160,7 @@ st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_leve
 # 画像アップロードエリア
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
 
-# 過去のメッセージを表示 (Streamlitのバグ対策として、空のコンテンツは厳しく除外)
+# 過去のメッセージを表示 
 for message in st.session_state.messages:
     # ユーザーとAIのメッセージのうち、内容（content）が空ではないものだけを表示
     if isinstance(message, dict) and message.get("content"): 
