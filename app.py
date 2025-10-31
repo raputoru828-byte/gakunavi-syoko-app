@@ -54,20 +54,21 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # 🌟 メモリ機能のロジックと安全チェック 🌟
     # 1. messagesリストのクリーンアップ（不正な要素の除去）
     messages = [m for m in messages if isinstance(m, dict)]
-    if not user_input.strip() and uploaded_file is None:
-        return "画像をアップロードするか、質問を入力してください。"
 
     # 2. 会話履歴が空の場合は処理をスキップ
     if not messages:
         return "" 
     
-    # 3. ユーザーの最新の入力テキストを取得 (安全強化版)
+    # 3. ユーザーの最新の入力テキストを取得と変数定義（UnboundLocalError対策済み）
     user_input = messages[-1].get("content") or messages[-1].get("text") or ""
-    
     user_input_lower = user_input.lower().strip()
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
+
+    # 4. 入力チェックの安全装置（空の入力でAPI呼び出しを防ぐ）
+    if not user_input.strip() and uploaded_file is None:
+        return "画像をアップロードするか、質問を入力してください。"
     
     # --- 1. レベル設定ロジック ---
     for level in level_keywords:
@@ -115,7 +116,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # --- 4. 翻訳・画像認識・AI応答ロジック ---
     if client:
         try:
-            is_translate = any(k in user_input_lower for k in translate_keywords)
+            is_translate = any(k in user_input_lower for k k in translate_keywords)
             
             system_instruction = ""
             
@@ -161,15 +162,18 @@ st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_leve
 # 画像アップロードエリア (キーを設定)
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
 
-# 過去のメッセージを表示 (チャット入力の前に配置)
+# 過去のメッセージを表示 (AIの応答のみを表示し、st.chat_inputとの衝突を防ぐ)
 for message in st.session_state.messages:
-    if message["role"] != "user" or "content" not in message:
+    if message["role"] == "assistant": # AIの応答だけ表示
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-            
+
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
-    # ユーザーメッセージを履歴に追加
+    
+    # ユーザーメッセージはst.chat_inputが自動処理するため、手動追加はしない
+    # 代わりに、ユーザーメッセージを一時的に履歴に追加して、chatbotに渡す
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
 
     # ボットの応答を生成
     with st.chat_message("assistant"):
