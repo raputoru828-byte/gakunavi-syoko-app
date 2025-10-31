@@ -66,8 +66,6 @@ def ultimate_chatbot(messages, uploaded_file=None):
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
-
-    # --- 0. 計算機ロジック (省略) ---
     
     # --- 1. レベル設定ロジック ---
     for level in level_keywords:
@@ -97,10 +95,8 @@ def ultimate_chatbot(messages, uploaded_file=None):
             "4. **フィードバック**: ユーザーに追加で質問し、計画を洗練させる。"
         )
         try:
-            # 画像ファイルが存在する場合はPIL Imageオブジェクトに変換
-            
-            # AIへのcontentsリストを生成
-            # 🌟 メモリと画像の統合 🌟
+            # 🌟 メモリと画像の統合 (シンプルな形式) 🌟
+            # Streamlitのファイルオブジェクトをそのままcontentsに追加
             contents = messages + ([uploaded_file] if uploaded_file else [])
             
             plan_response = client.models.generate_content(
@@ -114,24 +110,24 @@ def ultimate_chatbot(messages, uploaded_file=None):
         except APIError:
             pass # 失敗した場合は、通常のAI応答へフォールバック
 
-# 翻訳・画像認識・AI応答ロジック
-if client:
-    try:
-        is_translate = any(k in user_input_lower for k in translate_keywords)
-
-        system_instruction = ""
-
-        # 翻訳設定
-        if is_translate and uploaded_file is None:
-            system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
-        else:
-            # 振り返り学習を含む一般・画像認識プロンプト
-            system_instruction = (
-                f"あなたは「学ナビ -SYOKO-」という勉強支援AIです。現在の学習レベル（{user_level}）に合わせて、親しみやすい日本語で回答してください。"
-                f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
-            )
-
-        # 🌟 メモリと画像の統合 (最もシンプルな形式) 🌟
+    # --- 4. 翻訳・画像認識・AI応答ロジック ---
+    if client:
+        try:
+            is_translate = any(k in user_input_lower for k in translate_keywords)
+            
+            system_instruction = ""
+            
+            # 翻訳設定
+            if is_translate and uploaded_file is None:
+                system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
+            else:
+                # 振り返り学習を含む一般・画像認識プロンプト
+                system_instruction = (
+                    f"あなたは「学ナビ -SYOKO-」という勉強支援AIです。現在の学習レベル（{user_level}）に合わせて、親しみやすい日本語で回答してください。"
+                    f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
+                )
+            
+            # 🌟 メモリと画像の統合 (シンプルな形式) 🌟
             # Streamlitのファイルオブジェクトをそのままcontentsに追加
             contents = messages + ([uploaded_file] if uploaded_file else [])
 
@@ -145,8 +141,9 @@ if client:
             )
             return response.text
 
-    except APIError:
-        pass
+        except APIError:
+            # APIが失敗した場合は、デフォルトの応答を返す
+            pass 
 
     # --- 5. デフォルトの応答 ---
     return "ごめんなさい、わかりませんでした。他に聞きたいことはありますか？"
@@ -162,18 +159,15 @@ st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_leve
 # 画像アップロードエリア (キーを設定)
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
 
+# 過去のメッセージを表示 (チャット入力の前に配置)
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-# 過去のメッセージを表示 (入力欄の前に移動)
 
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
     # ユーザーメッセージを履歴に追加
     st.session_state.messages.append({"role": "user", "content": user_prompt})
-
-    # 画面にユーザーメッセージを表示 (履歴表示の一部として処理されるため、このブロックは不要)
 
     # ボットの応答を生成
     with st.chat_message("assistant"):
@@ -191,8 +185,4 @@ if user_prompt := st.chat_input("質問を入力してください..."):
     if bot_response:
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     
-# 過去のメッセージを表示 (既に上で処理済みだが、念のため二重実行を避ける)
-# if not user_prompt:
-#     for message in st.session_state.messages:
-#         with st.chat_message(message["role"]):
-#             st.markdown(message["content"])
+    # 画像はStreamlitの仕様に任せるため、クリア処理は行いません
