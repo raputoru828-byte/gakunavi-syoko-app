@@ -116,7 +116,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
 
 # 翻訳・画像認識・AI応答ロジック
 if client:
-    　　try:
+    try:
         is_translate = any(k in user_input_lower for k in translate_keywords)
 
         system_instruction = ""
@@ -145,7 +145,7 @@ if client:
             )
             return response.text
 
-        except APIError:
+except APIError:
             # APIが失敗した場合は、デフォルトの応答を返す
             pass 
 
