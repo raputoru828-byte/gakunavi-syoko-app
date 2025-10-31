@@ -98,11 +98,10 @@ def ultimate_chatbot(messages, uploaded_file=None):
         )
         try:
             # 画像ファイルが存在する場合はPIL Imageオブジェクトに変換
-            image_object = Image.open(uploaded_file) if uploaded_file else None
             
             # AIへのcontentsリストを生成
             # 🌟 メモリと画像の統合 🌟
-            contents = messages + ([image_object] if image_object else []) 
+            contents = messages + ([uploaded_file] if uploaded_file else [])
             
             plan_response = client.models.generate_content(
                 model='gemini-2.5-flash',
