@@ -145,7 +145,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
             # --- Gemini API呼び出し ---
             response = client.models.generate_content(
                 model=model,
-               contents=messages,
+               contents=messages + ([image] if uploaded_file else []),
                 config=genai.types.GenerateContentConfig(
                     system_instruction=system_instruction
                 )
