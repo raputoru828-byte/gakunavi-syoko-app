@@ -143,7 +143,7 @@ if client:
                     system_instruction=system_instruction
                 )
             )
-        return response.text
+       return response.text
 
     except APIError:
         # APIが失敗した場合は、デフォルトの応答を返す
