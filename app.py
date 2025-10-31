@@ -145,8 +145,8 @@ if client:
             )
             return response.text
 
-        except APIError:
-            pass
+    except APIError:
+        pass
 
     # --- 5. デフォルトの応答 ---
     return "ごめんなさい、わかりませんでした。他に聞きたいことはありますか？"
