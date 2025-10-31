@@ -8,27 +8,16 @@ import os
 # --- 1. 環境設定と初期化 ---
 # Google Gemini APIキーをStreamlit Secretsから取得
 try:
+    # APIキーが設定されていない場合はエラーを出し、処理を停止
     API_KEY = st.secrets["GEMINI_API_KEY"]
 except (AttributeError, KeyError):
     st.error("APIキーが設定されていません。Streamlit Secretsに 'GEMINI_API_KEY' を設定してください。")
     st.stop()
 
+# Geminiクライアントの初期化
 client = genai.Client(api_key=API_KEY)
 
-# 知識ベースの定義（簡易的なもの）
-knowledge_base_multi_level = {
-    "因数分解": {
-        "beginner": "因数分解とは、多項式をいくつかの因数の積の形に直すことです。例：$x^2 + 5x + 6 = (x+2)(x+3)$",
-        "intermediate": "たすきがけ、共通因数、置換を利用した因数分解について確認しましょう。",
-        "expert": "複素数の範囲での因数分解や、3次以上の因数分解（組立除法など）についても説明できます。",
-    },
-    "物理基礎": {
-        "beginner": "物理基礎では、力のつり合いや運動の法則、エネルギーの基礎を学びます。まずはニュートンの運動の第1法則から見ていきましょう。",
-        "intermediate": "仕事とエネルギーの関係、電磁気学の基礎（オームの法則など）を復習します。",
-        "expert": "単振動や波動、量子論の初歩について深く掘り下げて学びます。",
-    }
-}
-
+# 知識ベースは使用しないため削除（コードの簡素化）
 # 状態管理（セッションステート）の初期化
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -52,7 +41,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     最終版: 翻訳、画像認識、振り返り学習を含む全ての機能を統合したチャットボット (Streamlit対応)
     """
     # 🌟 メモリ機能のロジックと安全チェック 🌟
-    # 1. messagesリストのクリーンアップ（不正な要素の除去）
+    # 1. messagesリストのクリーンアップ
     messages = [m for m in messages if isinstance(m, dict)]
 
     # 2. 会話履歴が空の場合は処理をスキップ
@@ -99,7 +88,6 @@ def ultimate_chatbot(messages, uploaded_file=None):
         )
         try:
             # 🌟 メモリと画像の統合 (シンプルな形式) 🌟
-            # Streamlitのファイルオブジェクトをそのままcontentsに追加
             contents = messages + ([uploaded_file] if uploaded_file else [])
             
             plan_response = client.models.generate_content(
@@ -116,7 +104,8 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # --- 4. 翻訳・画像認識・AI応答ロジック ---
     if client:
         try:
-            is_translate = any(k in user_input_lower for k k in translate_keywords)
+            # ★修正済み: k k -> k に修正
+            is_translate = any(k in user_input_lower for k in translate_keywords)
             
             system_instruction = ""
             
@@ -131,7 +120,6 @@ def ultimate_chatbot(messages, uploaded_file=None):
                 )
             
             # 🌟 メモリと画像の統合 (シンプルな形式) 🌟
-            # Streamlitのファイルオブジェクトをそのままcontentsに追加
             contents = messages + ([uploaded_file] if uploaded_file else [])
 
             # 通常応答のAI呼び出し
@@ -171,14 +159,13 @@ for message in st.session_state.messages:
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
     
-    # ユーザーメッセージはst.chat_inputが自動処理するため、手動追加はしない
-    # 代わりに、ユーザーメッセージを一時的に履歴に追加して、chatbotに渡す
+    # ユーザーメッセージを一時的に履歴に追加して、chatbotに渡す
+    # StreamlitのチャットUIが自動でユーザーメッセージを表示するため、ここでは手動で表示しない
     st.session_state.messages.append({"role": "user", "content": user_prompt})
 
     # ボットの応答を生成
     with st.chat_message("assistant"):
         with st.spinner("🧠学ナビ -SYOKO- が考えています..."):
-            # 🌟 修正済み: 正しい引数で呼び出し 🌟
             bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
             
         if bot_response:
@@ -190,5 +177,3 @@ if user_prompt := st.chat_input("質問を入力してください..."):
     # ボットの応答を履歴に追加
     if bot_response:
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
-    
-    # 画像はStreamlitの仕様に任せるため、クリア処理は行いません
