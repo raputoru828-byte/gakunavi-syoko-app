@@ -114,38 +114,31 @@ def ultimate_chatbot(messages, uploaded_file=None):
         except APIError:
             pass # 失敗した場合は、通常のAI応答へフォールバック
 
-    # --- 4. 翻訳・画像認識・AI応答ロジック ---
-    if client:
-        try:
-            is_translate = any(k in user_input_lower for k in translate_keywords)
-            
-            system_instruction = ""
-            
-            # 翻訳設定
-            if is_translate and uploaded_file is None:
-                # 翻訳専用プロンプト
-                system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
-            else:
-                # 振り返り学習を含む一般・画像認識プロンプト
-                system_instruction = (
-                    f"あなたは「学ナビ -SYOKO-」という勉強支援AIです。現在の学習レベル（{user_level}）に合わせて、親しみやすい日本語で回答してください。"
-                    f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
-                )
-            
-            # 画像処理とcontentsの生成
-            image_object = None
-            if uploaded_file is not None:
-                image_object = Image.open(uploaded_file) 
-                
-                # 画像のキャプションがなければ、デフォルトのプロンプトを設定
-                if not user_input.strip():
-                     messages[-1]["content"] = "この画像の内容を解説してください。"
+    # 既存のコードを以下のように置き換える
 
-            # 🌟 メモリと画像の統合 🌟
-            contents = messages + ([image_object] if image_object else [])
-            
-            # 通常応答のAI呼び出し
-            response = client.models.generate_content(
+# 翻訳・画像認識・AI応答ロジック
+if client:
+    try:
+        is_translate = any(k in user_input_lower for k in translate_keywords)
+
+        system_instruction = ""
+
+        # 翻訳設定
+        if is_translate and uploaded_file is None:
+            system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
+        else:
+            # 振り返り学習を含む一般・画像認識プロンプト
+            system_instruction = (
+                f"あなたは「学ナビ -SYOKO-」という勉強支援AIです。現在の学習レベル（{user_level}）に合わせて、親しみやすい日本語で回答してください。"
+                f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
+            )
+
+        # 🌟 メモリと画像の統合 (最もシンプルな形式) 🌟
+        # Streamlitのファイルオブジェクトをそのままcontentsに追加します
+        contents = messages + ([uploaded_file] if uploaded_file else [])
+
+        # 通常応答のAI呼び出し
+        response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents, 
                 config=genai.types.GenerateContentConfig(
