@@ -96,9 +96,17 @@ def ultimate_chatbot(messages, uploaded_file=None):
             "4. **フィードバック**: ユーザーに追加で質問し、計画を洗練させる。"
         )
         try:
-            # メッセージのクリーンアップ（計画ロジック）
-            contents_clean = [m for m in messages if m.get("content")]
-            contents = contents_clean + ([uploaded_file] if uploaded_file else [])
+            # 🌟 強力なコンテンツフィルタリング (計画ロジック) 🌟
+            def filter_contents(items, file):
+                valid_contents = []
+                for item in items:
+                    if isinstance(item, dict) and item.get("content") and isinstance(item["content"], str):
+                        valid_contents.append(item)
+                if file:
+                    valid_contents.append(file)
+                return valid_contents
+
+            contents = filter_contents(messages, uploaded_file)
             
             plan_response = client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -129,9 +137,17 @@ def ultimate_chatbot(messages, uploaded_file=None):
                     f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
                 )
             
-            # 🌟 API呼び出しのための最終メッセージクリーンアップ (ValidationError対策) 🌟
-            contents_clean = [m for m in messages if m.get("content")]
-            contents = contents_clean + ([uploaded_file] if uploaded_file else [])
+            # 🌟 強力なコンテンツフィルタリング (一般ロジック) 🌟
+            def filter_contents(items, file):
+                valid_contents = []
+                for item in items:
+                    if isinstance(item, dict) and item.get("content") and isinstance(item["content"], str):
+                        valid_contents.append(item)
+                if file:
+                    valid_contents.append(file)
+                return valid_contents
+
+            contents = filter_contents(messages, uploaded_file)
 
             # 通常応答のAI呼び出し
             response = client.models.generate_content(
@@ -158,7 +174,6 @@ st.caption("AIによる勉強計画、クイズ、画像解説、振り返り学
 st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_level.capitalize()}`")
 
 # 🚨 最終修正: 画像アップロードウィジェットのキーを動的に変更 🚨
-# これにより、レベル設定などでセッションステートが更新された際、過去の不正なファイルオブジェクトが破棄される
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key=f'image_upload_{st.session_state.user_level}')
 
 
