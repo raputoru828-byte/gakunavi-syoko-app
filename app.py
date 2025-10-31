@@ -40,8 +40,6 @@ if "quiz_concept" not in st.session_state:
     st.session_state.quiz_concept = ""
 if "user_level" not in st.session_state:
     st.session_state.user_level = "general" # 初期レベル
-if "image_upload" not in st.session_state:
-    st.session_state.image_upload = None
 
 # --- 2. 各機能のキーワード定義 ---
 level_keywords = ["beginner", "intermediate", "expert", "general", "初心者", "中級", "上級", "一般"]
@@ -53,7 +51,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     """
     最終版: 翻訳、画像認識、振り返り学習を含む全ての機能を統合したチャットボット (Streamlit対応)
     """
-    # 🌟 メモリ機能のロジックをここに統合 🌟
+    # 🌟 メモリ機能のロジックと安全チェック 🌟
     # 1. messagesリストのクリーンアップ（不正な要素の除去）
     messages = [m for m in messages if isinstance(m, dict)]
 
@@ -61,8 +59,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     if not messages:
         return "" 
     
-    # 3. ユーザーの最新の入力テキストを取得
-    # 安全にcontentまたはtextキーを取得（以前のエラー対応）
+    # 3. ユーザーの最新の入力テキストを取得 (安全強化版)
     user_input = messages[-1].get("content") or messages[-1].get("text") or ""
     
     user_input_lower = user_input.lower().strip()
@@ -70,18 +67,8 @@ def ultimate_chatbot(messages, uploaded_file=None):
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
 
-    # 5. user_input_lowerを再度クリーンアップ（計算機機能で使用するため）
-    user_input_lower = user_input_lower.strip() 
+    # --- 0. 計算機ロジック (省略) ---
     
-    # --- 0. 計算機ロジック ---
-    # if any(c.isdigit() for c in user_input_lower) and any(op in user_input_lower for op in ['+', '-', '*', '/']):
-    #     cleaned_input = user_input_lower.replace('×', '*').replace('÷', '/').replace(',', '')
-    #     try:
-    #         result = eval(cleaned_input)
-    #         return f"計算結果は...**{result}**です!"
-    #     except:
-    #         pass # 失敗した場合は通常のAI応答へフォールバック
-
     # --- 1. レベル設定ロジック ---
     for level in level_keywords:
         if level in user_input_lower:
@@ -110,11 +97,16 @@ def ultimate_chatbot(messages, uploaded_file=None):
             "4. **フィードバック**: ユーザーに追加で質問し、計画を洗練させる。"
         )
         try:
-            # 計画機能のAI呼び出し
+            # 画像ファイルが存在する場合はPIL Imageオブジェクトに変換
+            image_object = Image.open(uploaded_file) if uploaded_file else None
+            
+            # AIへのcontentsリストを生成
+            # 🌟 メモリと画像の統合 🌟
+            contents = messages + ([image_object] if image_object else []) 
+            
             plan_response = client.models.generate_content(
                 model='gemini-2.5-flash',
-                # 🌟 メモリと画像の統合 🌟
-                contents=messages + ([uploaded_file] if uploaded_file else []), 
+                contents=contents, 
                 config=genai.types.GenerateContentConfig(
                     system_instruction=plan_system_instruction
                 )
@@ -131,7 +123,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
             system_instruction = ""
             
             # 翻訳設定
-            if is_translate and not uploaded_file:
+            if is_translate and uploaded_file is None:
                 # 翻訳専用プロンプト
                 system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
             else:
@@ -141,29 +133,22 @@ def ultimate_chatbot(messages, uploaded_file=None):
                     f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
                 )
             
-            # 画像処理
+            # 画像処理とcontentsの生成
+            image_object = None
             if uploaded_file is not None:
-                # Imageオブジェクトに変換
-                Image_object = Image.open(uploaded_file) 
+                image_object = Image.open(uploaded_file) 
                 
                 # 画像のキャプションがなければ、デフォルトのプロンプトを設定
                 if not user_input.strip():
-                     user_input = "この画像の内容を解説してください。"
+                     messages[-1]["content"] = "この画像の内容を解説してください。"
 
-                # 🌟 画像処理後のcontentsの生成（メモリはここで統合）🌟
-                contents = messages + [Image_object] 
-                
-                # ユーザーの最新のプロンプトをcontentsの末尾に追加
-                contents.append(user_input)
-
-            else:
-                # 画像がない場合は、会話履歴全体をそのままcontentsとする
-                contents = messages
-
+            # 🌟 メモリと画像の統合 🌟
+            contents = messages + ([image_object] if image_object else [])
+            
             # 通常応答のAI呼び出し
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
-                contents=contents, # contentsは既に画像とメッセージ履歴を統合済み
+                contents=contents, 
                 config=genai.types.GenerateContentConfig(
                     system_instruction=system_instruction
                 )
@@ -185,22 +170,25 @@ st.caption("AIによる勉強計画、クイズ、画像解説、振り返り学
 # レベル表示
 st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_level.capitalize()}`")
 
-# 画像アップロードエリア
+# 画像アップロードエリア (キーを設定)
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
+
+# 過去のメッセージを表示 (入力欄の前に移動)
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
     # ユーザーメッセージを履歴に追加
     st.session_state.messages.append({"role": "user", "content": user_prompt})
 
-    # 画面にユーザーメッセージを表示
-    with st.chat_message("user"):
-        st.markdown(user_prompt)
+    # 画面にユーザーメッセージを表示 (履歴表示の一部として処理されるため、このブロックは不要)
 
     # ボットの応答を生成
     with st.chat_message("assistant"):
         with st.spinner("🧠学ナビ -SYOKO- が考えています..."):
-            # 🌟 メモリと画像の引数を使用 🌟
+            # 🌟 修正済み: 正しい引数で呼び出し 🌟
             bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
             
         if bot_response:
@@ -214,9 +202,13 @@ if user_prompt := st.chat_input("質問を入力してください..."):
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     
     # 画像は一度使うと消去
-    if uploaded_file is not None:uploaded_file = None
+    # StreamlitValueAssignmentNotAllowedErrorを避けるため、session_stateのクリアは行わない
+    # uploaded_file変数は次のスクリプト実行時に自動的にNoneになる
+    if uploaded_file is not None:
+        pass # Streamlitの仕様に任せる
 
-# 過去のメッセージを表示
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# 過去のメッセージを表示 (既に上で処理済みだが、念のため二重実行を避ける)
+# if not user_prompt:
+#     for message in st.session_state.messages:
+#         with st.chat_message(message["role"]):
+#             st.markdown(message["content"])
