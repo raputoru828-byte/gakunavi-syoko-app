@@ -16,7 +16,6 @@ except (AttributeError, KeyError):
 # Geminiクライアントの初期化
 client = genai.Client(api_key=API_KEY)
 
-# 知識ベースは使用しないため削除（コードの簡素化）
 # 状態管理（セッションステート）の初期化
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -148,15 +147,12 @@ st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_leve
 # 画像アップロードエリア
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
 
-# 過去のメッセージを表示 (AIの応答のみを表示し、st.chat_inputとの衝突を防ぐ)
+# 過去のメッセージを表示 (Streamlitのバグ対策として、空のコンテンツは厳しく除外)
 for message in st.session_state.messages:
-    if message["role"] == "assistant": # AIの応答だけ表示
+    # ユーザーとAIのメッセージのうち、内容（content）が空ではないものだけを表示
+    if message.get("content"): 
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-    elif message["role"] == "user": # ユーザーの入力はst.chat_inputの挙動に任せるため、最新のものだけ処理
-         # 最新のユーザーメッセージはst.chat_inputが自動で表示
-         pass
-
 
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
