@@ -99,7 +99,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
 
                 plan_response = client.models.generate_content(
                     model=model,
-                    contents=messages,
+                    contents=messages + ([image] if uploaded_file else []),
                     config=genai.types.GenerateContentConfig(
                         system_instruction=plan_system_instruction
                     )
