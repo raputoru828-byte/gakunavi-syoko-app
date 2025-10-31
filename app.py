@@ -48,7 +48,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     最終版：翻訳、画像認識、掘り下げ学習を含む全ての機能を統合したチャットボット（Streamlit対応）
     """
     if not messages: return None
-    user_input = messages[-1]["content"] 
+    user_input = messages[-1]["content"] if messages else ""
     user_input_lower = user_input.lower().strip()
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
