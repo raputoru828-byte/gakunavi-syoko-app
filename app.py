@@ -120,7 +120,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     if client: 
         try:
             is_translate = any(k in user_input_lower for k in translate_keywords)
-           contents=messages
+          
             system_instruction = ""
             
             # --- プロンプト設定 ---
