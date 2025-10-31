@@ -50,6 +50,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     if not messages: return None
     user_input = messages[-1]["content"] if messages else ""
     user_input_lower = user_input.lower().strip()
+    messages = [m for m in messages if isinstance(m, dict)]
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
