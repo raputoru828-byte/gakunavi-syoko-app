@@ -8,7 +8,11 @@ import os
 # --- 1. 環境設定と初期化 ---
 # Google Gemini APIキーをStreamlit Secretsから取得
 try:
+    # 🚨 最終チェック: キーが空でないことを確認 🚨
     API_KEY = st.secrets["GEMINI_API_KEY"]
+    if not API_KEY or API_KEY.startswith('"') or API_KEY.endswith('"'):
+        st.error("APIキーの設定に誤りがあります。Secretsから「ダブルクォーテーション」を外し、再度保存してください。")
+        st.stop()
 except (AttributeError, KeyError):
     st.error("APIキーが設定されていません。Streamlit Secretsに 'GEMINI_API_KEY' を設定してください。")
     st.stop()
@@ -164,6 +168,8 @@ def ultimate_chatbot(messages, uploaded_file=None):
             return response.text
 
         except APIError:
+            # APIエラー発生時に、デバッグ情報をログに出力し、デフォルトメッセージを返す
+            print("API Error occurred in general chatbot path.")
             pass 
 
     # --- 5. デフォルトの応答 ---
