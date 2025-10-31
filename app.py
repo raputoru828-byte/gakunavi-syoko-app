@@ -114,11 +114,9 @@ def ultimate_chatbot(messages, uploaded_file=None):
         except APIError:
             pass # 失敗した場合は、通常のAI応答へフォールバック
 
-    # 既存のコードを以下のように置き換える
-
 # 翻訳・画像認識・AI応答ロジック
 if client:
-    try:
+    　　try:
         is_translate = any(k in user_input_lower for k in translate_keywords)
 
         system_instruction = ""
