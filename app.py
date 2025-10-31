@@ -54,6 +54,8 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # 🌟 メモリ機能のロジックと安全チェック 🌟
     # 1. messagesリストのクリーンアップ（不正な要素の除去）
     messages = [m for m in messages if isinstance(m, dict)]
+    if not user_input.strip() and uploaded_file is None:
+        return "画像をアップロードするか、質問を入力してください。"
 
     # 2. 会話履歴が空の場合は処理をスキップ
     if not messages:
