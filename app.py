@@ -215,7 +215,6 @@ if user_prompt := st.chat_input("質問を入力してください..."):
     
     # 画像は一度使うと消去
     if uploaded_file is not None:uploaded_file = None
-        st.session_state.image_upload = None
 
 # 過去のメッセージを表示
 for message in st.session_state.messages:
