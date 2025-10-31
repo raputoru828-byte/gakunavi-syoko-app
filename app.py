@@ -6,14 +6,15 @@ import random
 import os
 
 # --- 1. 環境設定と初期化 ---
-# APIキーをos.environから取得（Secretsエディタのバグ回避のため）
-API_KEY = "AIzaSyCE95wGJhcj84fQtx4doY-qLD_7nKO4eXE"
+# 🚨 最終手段: APIキーを直接埋め込み、Streamlit Cloudのバグを回避 🚨
+API_KEY = "AIzaSyCE95wGJhcj84fQtx4doY-qLD_7nKO4eXE" 
+
 try:
     if not API_KEY:
-        st.error("🚨 APIキーが設定されていません。環境変数に 'GEMINI_API_KEY' を設定してください。")
+        st.error("🚨 APIキーが設定されていません。コード内にキーが正しく埋め込まれているか確認してください。")
         st.stop()
-except (AttributeError, KeyError):
-    st.error("APIキーの取得中にエラーが発生しました。設定を確認してください。")
+except Exception:
+    st.error("APIキーの初期化中にエラーが発生しました。")
     st.stop()
 
 # Geminiクライアントの初期化
@@ -35,11 +36,13 @@ if "quiz_concept" not in st.session_state:
 # --- 2. 各機能のキーワード定義 ---
 level_keywords = ["beginner", "intermediate", "expert", "general", "初心者", "中級", "上級", "一般"]
 plan_keywords = ["勉強計画", "計画を立てて", "勉強法", "スケジュール"]
+# 👇 クイズ機能のキーワード
+quiz_keywords = ["クイズ", "問題出して", "テストして"] 
 
 # --- 3. メインチャットボット関数 ---
 def ultimate_chatbot(messages, uploaded_file=None):
     """
-    最終版: 翻訳、画像認識、振り返り学習を含む全ての機能を統合したチャットボット
+    最終版: 翻訳、画像認識、振り返り学習、クイズ機能を含む全ての機能を統合したチャットボット
     """
     # 🌟 究極の防御: Gemini API形式に合わせたcontentsの完全な再構築 🌟
     contents = []
@@ -65,6 +68,66 @@ def ultimate_chatbot(messages, uploaded_file=None):
         if level in user_input_lower:
             st.session_state.user_level = level.replace("初心者", "beginner").replace("中級", "intermediate").replace("上級", "expert").replace("一般", "general")
             return f"学習レベルを「**{st.session_state.user_level}**」に設定しました！"
+
+    # --- 1.5 クイズ解答ロジック ---
+    if st.session_state.is_quizzing:
+        # ユーザーの入力と記憶した答えを比較（大文字小文字、空白を無視）
+        # 🚨 クイズ解答処理のガードレールを強化 🚨
+        correct_answer_lower = st.session_state.current_answer.lower().strip()
+        
+        if correct_answer_lower in user_input_lower or user_input_lower == correct_answer_lower:
+            st.session_state.is_quizzing = False 
+            st.session_state.current_answer = ""
+            return f"**大正解です！🎉** クイズの概念は「{st.session_state.quiz_concept}」でした。素晴らしいですね！\n\n**次のステップ**として、この概念を応用した練習問題か、関連する次の学習ステップに進みましょうか？"
+        else:
+            return "答えが違います。もう一度考えてみましょうか？ヒントが必要ですか？"
+
+
+    # --- 2. クイズ生成ロジック ---
+    if any(k in user_input_lower for k in quiz_keywords):
+        # ユーザーが話していた最新のトピックを抽出
+        quiz_concept = user_input.replace("クイズ", "").replace("問題出して", "").replace("テストして", "").strip()
+        if not quiz_concept:
+            return "クイズを出したい概念やトピックを教えてください！例: 「**二次関数**のクイズを出して」"
+            
+        # クイズ生成プロンプト
+        quiz_system_instruction = (
+            f"あなたは、学習支援AIです。ユーザーのレベル（{user_level}）に合わせて、「{quiz_concept}」に関するクイズを一問だけ出してください。"
+            f"必ず**問題文の直前**に【クイズ】と書き、答えは**絶対に出力しないでください**。"
+            f"問題を出した後、ユーザーのレベルに合わせて「答えを待っています」などの励ましの言葉を添えてください。"
+        )
+        
+        try:
+            # 🌟 クイズ生成のためのAI呼び出し 🌟
+            quiz_contents = [
+                {"role": "user", "parts": [{"text": f"レベル{user_level}のユーザーに、「{quiz_concept}」についてクイズを出してください。"}]}
+            ]
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=quiz_contents, 
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=quiz_system_instruction
+                )
+            )
+            
+            # 答えを別途生成し、Session Stateに保存
+            answer_response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[{"role": "user", "parts": [{"text": f"今生成したクイズ「{response.text}」の**正しい答え**だけを出力してください。答え以外の余計な言葉は一切含めないでください。"}]}],
+            )
+
+            # クイズモードを有効化し、答えを記憶
+            st.session_state.is_quizzing = True
+            st.session_state.current_answer = answer_response.text.strip()
+            st.session_state.quiz_concept = quiz_concept
+            
+            return response.text # ユーザーにクイズ問題を返す
+
+        except APIError:
+            return "クイズの生成中にエラーが発生しました。再度お試しください。"
+        except Exception:
+            return "クイズ生成中に予期せぬエラーが発生しました。"
             
     # アップロードされたファイルを最後のユーザーメッセージに追加
     if uploaded_file and contents and contents[-1]['role'] == 'user':
@@ -87,9 +150,9 @@ def ultimate_chatbot(messages, uploaded_file=None):
         return response.text
 
     except APIError as e:
-        # APIエラー発生時、デバッグ情報をログに出力
-        print(f"API Error: {e}")
-        return "ごめんなさい、AIとの通信に失敗しました。APIキーまたはネットワーク接続を確認してください。"
+        # APIエラー発生時、デバッグ情報をログに出力し、デフォルトメッセージを返す
+        print(f"API Error occurred: {e}")
+        return "ごめんなさい、AIとの通信に失敗しました。APIキーを確認してください。"
     except Exception as e:
         print(f"General Error: {e}")
         return "ごめんなさい、エラーが発生しました。"
@@ -116,11 +179,7 @@ if user_prompt := st.chat_input("質問を入力してください..."):
 
     with st.chat_message("assistant"):
         with st.spinner("🧠学ナビ -SYOKO- が考えています..."):
-            # APIキーが空の場合にダミー応答を返す（デバッグ用）
-            if not API_KEY:
-                bot_response = "デバッグモード: APIキーがないため応答できません。"
-            else:
-                bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
+            bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
             
         if bot_response:
             st.markdown(bot_response)
