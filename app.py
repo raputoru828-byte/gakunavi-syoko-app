@@ -17,12 +17,13 @@ except (AttributeError, KeyError):
 client = genai.Client(api_key=API_KEY)
 
 # 状態管理（セッションステート）の初期化
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-# 既存の不正なデータを強制的にクリア
-else:
-    st.session_state.messages = [] 
-    
+# 🚨 ValidationError対策: 過去の不正なメッセージ履歴を強制的にリセットする 🚨
+if "messages" in st.session_state:
+    # 既存の不正なデータを del で完全に破棄
+    del st.session_state.messages 
+st.session_state.messages = []
+
+
 if "is_quizzing" not in st.session_state:
     st.session_state.is_quizzing = False
 if "current_answer" not in st.session_state:
