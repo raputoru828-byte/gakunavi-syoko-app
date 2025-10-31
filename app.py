@@ -7,8 +7,7 @@ import os
 
 # --- 1. 環境設定と初期化 ---
 # APIキーをos.environから取得（Secretsエディタのバグ回避のため）
-API_KEY = os.environ.get("GEMINI_API_KEY")
-
+API_KEY = "AIzaSyCE95wGJhcj84fQtx4doY-qLD_7nKO4eXE"
 try:
     if not API_KEY:
         st.error("🚨 APIキーが設定されていません。環境変数に 'GEMINI_API_KEY' を設定してください。")
