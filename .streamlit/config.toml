@@ -1,0 +1,14 @@
+[server]
+runOnSave = true
+
+[global]
+enableCORS = false
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[server.environment]
+GEMINI_API_KEY = "AIzaSyCkO3bzKAcWhnxxMuL_ZK_lRiDeNuPxYvQ"
