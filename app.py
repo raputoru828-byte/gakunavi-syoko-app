@@ -145,7 +145,7 @@ if client:
             )
             return response.text
 
-　　except APIError:
+    except APIError:
     　　　　　# APIが失敗した場合は、デフォルトの応答を返す
             pass 
 
