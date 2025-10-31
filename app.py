@@ -134,11 +134,11 @@ if client:
             )
 
         # 🌟 メモリと画像の統合 (最もシンプルな形式) 🌟
-        # Streamlitのファイルオブジェクトをそのままcontentsに追加します
-        contents = messages + ([uploaded_file] if uploaded_file else [])
+            # Streamlitのファイルオブジェクトをそのままcontentsに追加
+            contents = messages + ([uploaded_file] if uploaded_file else [])
 
-        # 通常応答のAI呼び出し
-        response = client.models.generate_content(
+            # 通常応答のAI呼び出し
+            response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents, 
                 config=genai.types.GenerateContentConfig(
