@@ -43,11 +43,12 @@ translate_keywords = ["を翻訳して", "に訳して", "翻訳", "translate"]
 
 # --- 新しい機能のキーワード ---
 plan_keywords = ["勉強計画", "計画を立てて", "勉強法", "スケジュール"]
-def ultimate_chatbot(user_input, uploaded_file=None):
+def ultimate_chatbot(messages, uploaded_file=None):
     """
     最終版：翻訳、画像認識、掘り下げ学習を含む全ての機能を統合したチャットボット（Streamlit対応）
     """
-    
+    user_input = messages[-1]["content"] 
+    user_input_lower = user_input.lower().strip()
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
@@ -97,7 +98,7 @@ def ultimate_chatbot(user_input, uploaded_file=None):
 
                 plan_response = client.models.generate_content(
                     model=model,
-                    contents=[user_input],
+                    contents=messages,
                     config=genai.types.GenerateContentConfig(
                         system_instruction=plan_system_instruction
                     )
@@ -119,7 +120,7 @@ def ultimate_chatbot(user_input, uploaded_file=None):
     if client: 
         try:
             is_translate = any(k in user_input_lower for k in translate_keywords)
-            contents = [user_input]
+           contents=messages
             system_instruction = ""
             
             # --- プロンプト設定 ---
@@ -143,7 +144,7 @@ def ultimate_chatbot(user_input, uploaded_file=None):
             # --- Gemini API呼び出し ---
             response = client.models.generate_content(
                 model=model,
-                contents=contents,
+               contents=messages,
                 config=genai.types.GenerateContentConfig(
                     system_instruction=system_instruction
                 )
