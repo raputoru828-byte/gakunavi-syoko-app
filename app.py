@@ -173,10 +173,11 @@ st.sidebar.markdown(f"**現在の学習レベル:** `{st.session_state.user_leve
 # 画像アップロードエリア (キーを設定)
 uploaded_file = st.file_uploader("画像をアップロードして解説", type=['png', 'jpg', 'jpeg'], key='image_upload')
 
-# 過去のメッセージを表示 (入力欄の前に移動)
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+
+# 過去のメッセージを表示 (入力欄の前に移動)
 
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
@@ -201,12 +202,6 @@ if user_prompt := st.chat_input("質問を入力してください..."):
     if bot_response:
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
     
-    # 画像は一度使うと消去
-    # StreamlitValueAssignmentNotAllowedErrorを避けるため、session_stateのクリアは行わない
-    # uploaded_file変数は次のスクリプト実行時に自動的にNoneになる
-    if uploaded_file is not None:
-        pass # Streamlitの仕様に任せる
-
 # 過去のメッセージを表示 (既に上で処理済みだが、念のため二重実行を避ける)
 # if not user_prompt:
 #     for message in st.session_state.messages:
