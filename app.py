@@ -140,7 +140,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
                 image = Image.open(uploaded_file)
                 
                 text_prompt = user_input if user_input else "この画像の内容を解説してください。"
-                contents = [text_prompt, image]
+                contents = [text_prompt, image] if image else [text_prompt]
             
             # --- Gemini API呼び出し ---
             response = client.models.generate_content(
