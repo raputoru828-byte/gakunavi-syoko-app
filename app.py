@@ -6,22 +6,21 @@ import random
 import os
 
 # --- 1. 環境設定と初期化 ---
-# Google Gemini APIキーをStreamlit Secretsから取得
+# APIキーをos.environ（config.tomlから設定される環境変数）から取得
+API_KEY = os.environ.get("GEMINI_API_KEY")
+
 try:
-    # 🚨 最終チェック: キーが空でないことを確認 🚨
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-    if not API_KEY or API_KEY.startswith('"') or API_KEY.endswith('"'):
-        st.error("APIキーの設定に誤りがあります。Secretsから「ダブルクォーテーション」を外し、再度保存してください。")
+    if not API_KEY:
+        st.error("🚨 APIキーが設定されていません。'.streamlit/config.toml'に 'GEMINI_API_KEY' を設定してください。")
         st.stop()
 except (AttributeError, KeyError):
-    st.error("APIキーが設定されていません。Streamlit Secretsに 'GEMINI_API_KEY' を設定してください。")
+    st.error("APIキーの取得中にエラーが発生しました。設定を確認してください。")
     st.stop()
 
 # Geminiクライアントの初期化
 client = genai.Client(api_key=API_KEY)
 
 # 状態管理（セッションステート）の初期化
-# 🚨 最終対策: すべてのキーを強制的にリセットする 🚨
 if "reset_flag" not in st.session_state:
     st.session_state.reset_flag = True
 
@@ -56,21 +55,17 @@ def ultimate_chatbot(messages, uploaded_file=None):
     最終版: 翻訳、画像認識、振り返り学習を含む全ての機能を統合したチャットボット (Streamlit対応)
     """
     # 🌟 メモリ機能のロジックと安全チェック 🌟
-    # 1. messagesリストのクリーンアップ
     messages = [m for m in messages if isinstance(m, dict)]
 
-    # 2. 会話履歴が空の場合は処理をスキップ
     if not messages:
         return "" 
     
-    # 3. ユーザーの最新の入力テキストを取得と変数定義
     user_input = messages[-1].get("content") or messages[-1].get("text") or ""
     user_input_lower = user_input.lower().strip()
     is_quizzing = st.session_state.is_quizzing
     user_level = st.session_state.user_level
     current_answer = st.session_state.current_answer
 
-    # 4. 入力チェックの安全装置
     if not user_input.strip() and uploaded_file is None:
         return "画像をアップロードするか、質問を入力してください。"
     
@@ -92,12 +87,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # --- 3. 勉強計画ロジック ---
     if any(k in user_input_lower for k in plan_keywords):
         plan_system_instruction = (
-            "あなたは学生の勉強をサポートするプロの家庭教師AIです。ユーザーの最新のメッセージ（目標など）に基づき、"
-            "以下の手順で具体的な**勉強計画**を提案してください。\n"
-            "1. **目標の確認**: ユーザーが明確な目標（テストの点数、理解したい概念など）を持っているか確認する。"
-            "2. **現状の把握**: ユーザーの現在の学習レベル（設定済みレベルがあればそれを使用）と、使える時間を確認する。"
-            "3. **具体的な計画の提案**: 計画は、**期間、目標、内容、評価方法**を明確に含めること。"
-            "4. **フィードバック**: ユーザーに追加で質問し、計画を洗練させる。"
+            # ... (中略) ...
         )
         try:
             # 🌟 究極の防御: contentsの完全な再構築 🌟
@@ -110,7 +100,6 @@ def ultimate_chatbot(messages, uploaded_file=None):
                             "parts": [{"text": message['content']}]
                         })
             
-            # アップロードされたファイルを最後のユーザーメッセージに追加
             if uploaded_file and contents and contents[-1]['role'] == 'user':
                 contents[-1]['parts'].append(uploaded_file)
             
@@ -128,16 +117,12 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # --- 4. 翻訳・画像認識・AI応答ロジック ---
     if client:
         try:
-            # 翻訳キーワードチェック
             is_translate = any(k in user_input_lower for k in translate_keywords)
-            
             system_instruction = ""
             
-            # 翻訳設定
             if is_translate and uploaded_file is None:
                 system_instruction = "あなたは高性能な翻訳AIです。依頼された文章を正確に翻訳し、翻訳結果のみを提示してください。翻訳以外の余計な言葉は一切含めないでください。"
             else:
-                # 一般・画像認識プロンプト
                 system_instruction = (
                     f"あなたは「学ナビ -SYOKO-」という勉強支援AIです。現在の学習レベル（{user_level}）に合わせて、親しみやすい日本語で回答してください。"
                     f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
@@ -153,11 +138,9 @@ def ultimate_chatbot(messages, uploaded_file=None):
                             "parts": [{"text": message['content']}]
                         })
 
-            # アップロードされたファイルを最後のユーザーメッセージに追加
             if uploaded_file and contents and contents[-1]['role'] == 'user':
                 contents[-1]['parts'].append(uploaded_file)
             
-            # 通常応答のAI呼び出し
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=contents, 
@@ -168,8 +151,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
             return response.text
 
         except APIError:
-            # APIエラー発生時に、デバッグ情報をログに出力し、デフォルトメッセージを返す
-            print("API Error occurred in general chatbot path.")
+            print("API Error occurred in general chatbot path. Check if API Key is correct and not rate-limited.")
             pass 
 
     # --- 5. デフォルトの応答 ---
@@ -189,7 +171,6 @@ uploaded_file = st.file_uploader("画像をアップロードして解説", type
 
 # 過去のメッセージを表示 
 for message in st.session_state.messages:
-    # ユーザーとAIのメッセージのうち、内容（content）が空ではないものだけを表示
     if isinstance(message, dict) and message.get("content"): 
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -197,10 +178,8 @@ for message in st.session_state.messages:
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
     
-    # ユーザーメッセージを履歴に追加
     st.session_state.messages.append({"role": "user", "content": user_prompt})
 
-    # ボットの応答を生成
     with st.chat_message("assistant"):
         with st.spinner("🧠学ナビ -SYOKO- が考えています..."):
             bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
@@ -210,6 +189,5 @@ if user_prompt := st.chat_input("質問を入力してください..."):
         else:
             st.markdown("ごめんなさい、応答に失敗しました。再度お試しください。")
 
-    # ボットの応答を履歴に追加
     if bot_response:
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
