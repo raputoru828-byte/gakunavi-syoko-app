@@ -120,7 +120,7 @@ def ultimate_chatbot(messages, uploaded_file=None):
     # --- 4. 翻訳・画像認識・AI応答ロジック ---
     if client: 
         try:
-            is_translate = any(k in user_input_lower for k in translate_keywords)
+            is_translate = any(k in user_input_lower for k in translate_keywords), contents=messages
           
             system_instruction = ""
             
