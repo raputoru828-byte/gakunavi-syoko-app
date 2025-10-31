@@ -96,17 +96,19 @@ def ultimate_chatbot(messages, uploaded_file=None):
             "4. **フィードバック**: ユーザーに追加で質問し、計画を洗練させる。"
         )
         try:
-            # 🌟 強力なコンテンツフィルタリング (計画ロジック) 🌟
-            def filter_contents(items, file):
-                valid_contents = []
-                for item in items:
-                    if isinstance(item, dict) and item.get("content") and isinstance(item["content"], str):
-                        valid_contents.append(item)
-                if file:
-                    valid_contents.append(file)
-                return valid_contents
-
-            contents = filter_contents(messages, uploaded_file)
+            # 🌟 究極の防御: contentsの完全な再構築 🌟
+            contents = []
+            for message in messages:
+                if isinstance(message, dict) and 'role' in message and 'content' in message:
+                    if isinstance(message['content'], str) and message['content'].strip():
+                        contents.append({
+                            "role": message['role'],
+                            "parts": [{"text": message['content']}]
+                        })
+            
+            # アップロードされたファイルを最後のユーザーメッセージに追加
+            if uploaded_file and contents and contents[-1]['role'] == 'user':
+                contents[-1]['parts'].append(uploaded_file)
             
             plan_response = client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -137,18 +139,20 @@ def ultimate_chatbot(messages, uploaded_file=None):
                     f"回答の最後に、そのトピックに関連する次の学習ステップや練習問題の提案を必ず一つ提案してください。"
                 )
             
-            # 🌟 強力なコンテンツフィルタリング (一般ロジック) 🌟
-            def filter_contents(items, file):
-                valid_contents = []
-                for item in items:
-                    if isinstance(item, dict) and item.get("content") and isinstance(item["content"], str):
-                        valid_contents.append(item)
-                if file:
-                    valid_contents.append(file)
-                return valid_contents
+            # 🌟 究極の防御: contentsの完全な再構築 🌟
+            contents = []
+            for message in messages:
+                if isinstance(message, dict) and 'role' in message and 'content' in message:
+                    if isinstance(message['content'], str) and message['content'].strip():
+                        contents.append({
+                            "role": message['role'],
+                            "parts": [{"text": message['content']}]
+                        })
 
-            contents = filter_contents(messages, uploaded_file)
-
+            # アップロードされたファイルを最後のユーザーメッセージに追加
+            if uploaded_file and contents and contents[-1]['role'] == 'user':
+                contents[-1]['parts'].append(uploaded_file)
+            
             # 通常応答のAI呼び出し
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
