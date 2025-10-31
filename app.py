@@ -191,9 +191,9 @@ if user_prompt := st.chat_input("質問を入力してください..."):
     # ボットの応答を生成
     with st.chat_message("assistant"):
         with st.spinner("🤖 学ナビ -SYOKO- が考えています..."):
-            bot_response = ultimate_chatbot(user_prompt, uploaded_file)
-            st.markdown(bot_response)
-
+            bot_response = ultimate_chatbot(st.session_state.messages, uploaded_file)
+            if bot_response:
+　　　　　　　st.markdown(bot_response)
     # ボットの応答を履歴に追加
     st.session_state.messages.append({"role": "assistant", "content": bot_response})
     
