@@ -161,13 +161,13 @@ uploaded_file = st.file_uploader("画像をアップロードして解説", type
 
 # 過去のメッセージを表示 (チャット入力の前に配置)
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
+    if message["role"] != "user" or "content" not in message:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            
 # メインチャット入力
 if user_prompt := st.chat_input("質問を入力してください..."):
     # ユーザーメッセージを履歴に追加
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
 
     # ボットの応答を生成
     with st.chat_message("assistant"):
